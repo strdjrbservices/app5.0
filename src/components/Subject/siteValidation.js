@@ -138,7 +138,14 @@ export const checkYesNoWithComment = (field, text, data, fieldConfig) => {
     if (field !== fieldConfig.name) return null;
 
     const value = String(text || '').trim().toLowerCase();
-
+  // Special handling for the adverse site conditions field
+    if (field === "Are there any adverse site conditions or external factors (easements, encroachments, environmental conditions, land uses, etc.)? If Yes, describe") {
+        if (value.includes('yes')) {
+            return { isMatch: true };
+        } else {
+            return { isError: true, message: `The response for '${field}' must include 'Yes' if adverse conditions are present.` };
+        }
+    }
     if (!value) {
         return { isError: true, message: `'${field}' should not be blank.` };
     }

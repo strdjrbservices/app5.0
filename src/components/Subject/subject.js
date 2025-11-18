@@ -20,6 +20,7 @@ import uploadSoundFile from '../../Assets/upload.mp3';
 import successSoundFile from '../../Assets/success.mp3';
 import errorSoundFile from '../../Assets/error.mp3';
 
+
 const TooltipStyles = () => (
   <GlobalStyles styles={{
     '.editable-field-container[style*="--tooltip-message"]': {
@@ -1002,7 +1003,7 @@ function Subject() {
       extractFormData.append('file', contractFile);
       extractFormData.append('form_type', selectedFormType);
       extractFormData.append('comment', 'Extract the "Contract Price $" and "Date of Contract".');
-      
+
       const extractRes = await fetch('https://strdjrbservices1.pythonanywhere.com/api/extract/', {
         method: 'POST',
         body: extractFormData,
@@ -1014,8 +1015,8 @@ function Subject() {
       }
       const extractResult = await extractRes.json();
       // Handle both nested and flat response structures
-      const extractedFields = extractResult.fields 
-        ? (extractResult.fields.CONTRACT || extractResult.fields) 
+      const extractedFields = extractResult.fields
+        ? (extractResult.fields.CONTRACT || extractResult.fields)
         : (extractResult.CONTRACT || extractResult);
 
       // 2. Prepare data for display
@@ -1157,6 +1158,7 @@ function Subject() {
     // 'Exposure comment',
     // 'Prior service comment',
     // 'ANSI',
+    // 'From Type',
     'Property Address',
     'City',
     'County',
@@ -1245,7 +1247,7 @@ function Subject() {
     "Is property seller owner of public record?",
     "Data Source(s)",
     "Is there any financial assistance (loan charges, sale concessions, gift or downpayment assistance, etc.) to be paid by any party on behalf of the borrower?",
-    "If Yes, report the total dollar amount and describe the items to be paid",
+    "If Yes, report the total dollar amount and describe the items to be paid"
   ];
 
   const neighborhoodFields = [
@@ -1295,7 +1297,8 @@ function Subject() {
     "Finished area above grade Bath(s)", "Square Feet of Gross Living Area Above Grade",
     "Additional features", "Describe the condition of the property",
     "Are there any physical deficiencies or adverse conditions that affect the livability, soundness, or structural integrity of the property? If Yes, describe",
-
+    "Does the property generally conform to the neighborhood (functional utility, style, condition, use, construction, etc.)?",
+    "Does the property generally conform to the neighborhood (functional utility, style, condition, use, construction, etc.)?If Yes, describe"
   ];
 
   const reconciliationFields = [
@@ -1813,6 +1816,17 @@ function Subject() {
       result.fields["Utilities included in the unit monthly assessment"] = result.fields[longUtilField];
     }
 
+
+    if (result.fields && result.fields['From Type']) {
+      const formType = result.fields['From Type'];
+      setNotification({
+        open: true,
+
+        message: `From Type is '${formType}'. Please select the form type first, then extract other sections.`,
+        severity: 'warning'
+      });
+    }
+
     Object.keys(result.fields || {}).forEach(key => {
       if (key.toUpperCase() === "SUBJECT") {
         normalizedFields["Subject"] = result.fields[key];
@@ -1838,17 +1852,20 @@ function Subject() {
     const minutes = Math.floor(totalSeconds / 60);
     const seconds = totalSeconds % 60;
 
-    const sectionName = category ? `${category.replace(/_/g, ' ').toLowerCase()} section` : 'extraction';
-    let durationMessage = '';
-    if (minutes > 0) {
-      durationMessage += `${minutes}m `;
+    // Only show success notification if the 'From Type' warning isn't already active.
+    if (notification.severity !== 'warning' || !notification.message.startsWith('From Type is')) {
+      const sectionName = category ? `${category.replace(/_/g, ' ').toLowerCase()} section` : 'extraction';
+      let durationMessage = '';
+      if (minutes > 0) {
+        durationMessage += `${minutes}m `;
+      }
+      durationMessage += `${seconds}s`;
+      setNotification({
+        open: true,
+        message: <>Extraction of <strong style={{ color: '#000000' }}>{sectionName}</strong> completed in {durationMessage}.</>,
+        severity: 'success'
+      });
     }
-    durationMessage += `${seconds}s`;
-    setNotification({
-      open: true,
-      message: <>Extraction of <strong style={{ color: '#000000' }}>{sectionName}</strong> completed in {durationMessage}.</>,
-      severity: 'success'
-    });
     setLastExtractionTime(totalSeconds.toFixed(1));
     setExtractionProgress(100);
   };
@@ -2755,81 +2772,126 @@ function Subject() {
             <Grid item xs={12} md={8}>
               {selectedFile && (
                 <Stack spacing={1}>
-                  {data['FHA Case No.'] && (
-                    <Box sx={{ display: 'flex', alignItems: 'center', mt: 0.5 }}>
-                      <Typography variant="body2" noWrap sx={{ fontWeight: 'bold', color: 'secondary.main' }}>
-                        FHA Case #: {data['FHA Case No.']}
+                  {data['From Type'] && (
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1,
+                        mt: 0.5,
+                        width: '100%',
+                        p: 1,
+                        borderRadius: 1,
+                        backgroundColor: 'warning.light',
+                        border: '1px solid',
+                        borderColor: 'warning.main',
+                      }}
+                    >
+                      <Typography variant="body2" sx={{ fontWeight: 'bold', color: 'warning.dark' }}>
+                        Please select the correct form type:
                       </Typography>
-                      <Tooltip title="Check FHA Requirements">
-                        <IconButton onClick={handleFhaCheck} size="small" sx={{ ml: 0.5 }}>
-                          <Info fontSize="small" color="info" />
-                        </IconButton>
-                      </Tooltip>
-                    </Box>
-                  )}
 
-                  {data['ANSI'] && (
-                    <Box sx={{ display: 'flex', alignItems: 'center', mt: 0.5 }}>
-                      <Typography variant="body2" sx={{ fontWeight: 'bold', mr: 1, flexShrink: 0 }}>
-                        ANSI:
+                      <Typography
+                        variant="body2"
+                        sx={{ fontWeight: 'bold' }}
+                      >
+                        Form Type:
                       </Typography>
-                      <EditableField fieldPath={['ANSI']} value={data['ANSI']} onDataChange={handleDataChange} editingField={editingField} setEditingField={setEditingField} isEditable={isEditable} allData={data} />
-                    </Box>
-                  )}
 
-
-                  {data['Exposure comment'] && (
-                    <Box sx={{ display: 'flex', alignItems: 'center', mt: 0.5 }}>
-                      <Typography variant="body2" noWrap sx={{ fontWeight: 'bold', mr: 1 }}>
-                        Exposure Comment:
-                      </Typography>
-                      <EditableField fieldPath={['Exposure comment']} value={data['Exposure comment']} onDataChange={handleDataChange} editingField={editingField} setEditingField={setEditingField} isEditable={isEditable} allData={data} />
-                    </Box>
-                  )}
-
-                  {data['Prior service comment'] && (
-                    <Box sx={{ display: 'flex', alignItems: 'center', mt: 0.5 }}>
-                      <Typography variant="body2" noWrap sx={{ fontWeight: 'bold', mr: 1 }}>
-                        Prior Service Comment:
-                      </Typography>
                       <EditableField
-                        fieldPath={['Prior service comment']}
-                        value={data['Prior service comment']}
+                        fieldPath={['From Type']}
+                        value={data['From Type']}
                         onDataChange={handleDataChange}
-                        editingField={editingField} setEditingField={setEditingField}
-                        isEditable={isEditable} allData={data}
+                        editingField={editingField}
+                        setEditingField={setEditingField}
+                        isEditable={isEditable}
+                        allData={data}
                       />
+                      <WarningIcon color="warning" sx={{ marginLeft: '-20px' }} />
                     </Box>
+
                   )}
-                  {isUnpaidOkLender && (
-                    <Box sx={{ display: 'flex', alignItems: 'center', mt: 0.5 }}>
-                      <Typography variant="body2" noWrap sx={{ fontWeight: 'bold', color: 'success.main' }}>
-                        Unpaid OK can proceed with review
-                      </Typography>
-                    </Box>
-                  )}
-                  {String(data['Assignment Type'] || '').toLowerCase() === 'purchase transaction' && !contractExtracted && !loading && (
-                    <Dialog open={true} onClose={(event, reason) => { if (reason !== 'backdropClick') setContractExtracted(true); }}>
-                      <DialogTitle sx={{ display: 'flex', alignItems: 'center' }}>
-                        <WarningIcon color="warning" sx={{ mr: 1 }} />
-                        Purchase Transaction Alert
-                      </DialogTitle>
-                      <DialogContent>
-                        <Typography>The "Contract" section has not been extracted for this purchase transaction. This is a required step.</Typography>
-                      </DialogContent>
-                      <DialogActions>
-                        <Button onClick={() => setContractExtracted(true)}>Dismiss</Button>
-                        <Button
-                          onClick={() => {
-                            handleExtract('CONTRACT');
-                            setContractExtracted(true);
-                          }}
-                          variant="contained"
-                        >
-                          Extract Contract
-                        </Button>
-                      </DialogActions>
-                    </Dialog>)}
+                  <Paper variant="outlined" sx={{ p: 1.5, mt: 1, bgcolor: 'background.default' }}>
+                    <Stack spacing={1}>
+                      {data['FHA Case No.'] && (
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          <Typography variant="body2" noWrap sx={{ fontWeight: 'bold', color: 'secondary.main' }}>
+                            FHA Case #: {data['FHA Case No.']}
+                          </Typography>
+                          <Tooltip title="Check FHA Requirements">
+                            <IconButton onClick={handleFhaCheck} size="small" sx={{ ml: 0.5 }}>
+                              <Info fontSize="small" color="info" />
+                            </IconButton>
+                          </Tooltip>
+                        </Box>
+                      )}
+                      {data['ANSI'] && (
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          <Typography variant="body2" sx={{ fontWeight: 'bold', mr: 1, flexShrink: 0 }}>
+                            ANSI:
+                          </Typography>
+                          <EditableField fieldPath={['ANSI']} value={data['ANSI']} onDataChange={handleDataChange} editingField={editingField} setEditingField={setEditingField} isEditable={isEditable} allData={data} />
+                        </Box>
+                      )}
+                      {data['Exposure comment'] && (
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          <Typography variant="body2" noWrap sx={{ fontWeight: 'bold', mr: 1 }}>
+                            Exposure Comment:
+                          </Typography>
+                          <EditableField fieldPath={['Exposure comment']} value={data['Exposure comment']} onDataChange={handleDataChange} editingField={editingField} setEditingField={setEditingField} isEditable={isEditable} allData={data} />
+                        </Box>
+                      )}
+                      {data['Prior service comment'] && (
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          <Typography variant="body2" noWrap sx={{ fontWeight: 'bold', mr: 1 }}>
+                            Prior Service Comment:
+                          </Typography>
+                          <EditableField fieldPath={['Prior service comment']} value={data['Prior service comment']} onDataChange={handleDataChange} editingField={editingField} setEditingField={setEditingField} isEditable={isEditable} allData={data} />
+                        </Box>
+                      )}
+                      {isUnpaidOkLender && (
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          <Typography variant="body2" noWrap sx={{ fontWeight: 'bold', color: 'success.main' }}>
+                            Unpaid OK can proceed with review
+                          </Typography>
+                        </Box>
+                      )}
+                      {/* {!data['FHA Case No.'] && !data['ANSI'] && !data['Exposure comment'] && !data['Prior service comment'] && !isUnpaidOkLender && ( */}
+                      {(!data['FHA Case No.'] || !data['ANSI'] || !data['Exposure comment'] || !data['Prior service comment'] || !isUnpaidOkLender) && (
+                        <Box sx={{ display: 'flex', alignItems: 'center', p: 1, borderRadius: 1, bgcolor: 'error.light' }}>
+                           <ErrorOutlineIcon color="error" sx={{ mr: 1 }} />
+                          <Typography variant="body2" sx={{ fontWeight: 'bold', color: 'error.dark' }}>
+                            Plz check the report
+                          </Typography>
+                        </Box>
+                      )}
+                    </Stack>
+                  </Paper>
+                  {(() => {
+                    const assignmentType = String(data['Assignment Type'] || '').toLowerCase();
+                    return (assignmentType === 'purchase transaction' || assignmentType === 'purchase');
+                  })() && !contractExtracted && !loading && (
+                      <Dialog open={true} onClose={(event, reason) => { if (reason !== 'backdropClick') setContractExtracted(true); }}>
+                        <DialogTitle sx={{ display: 'flex', alignItems: 'center' }}>
+                          <WarningIcon color="warning" sx={{ mr: 1 }} />
+                          Purchase Transaction Alert
+                        </DialogTitle>
+                        <DialogContent>
+                          <Typography>The "Contract" section has not been extracted for this purchase transaction. This is a required step.</Typography>
+                        </DialogContent>
+                        <DialogActions>
+                          <Button onClick={() => setContractExtracted(true)}>Dismiss</Button>
+                          <Button
+                            onClick={() => {
+                              handleExtract('CONTRACT');
+                              setContractExtracted(true);
+                            }}
+                            variant="contained"
+                          >
+                            Extract Contract
+                          </Button>
+                        </DialogActions>
+                      </Dialog>)}
                 </Stack>
               )}
             </Grid>
