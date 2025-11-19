@@ -16,13 +16,19 @@ import {
 
 export const CLIENT_REQUIREMENT_PROMPT = `
 Based on the Lender/Client name in the document, verify if it matches any of a list of lenders/clients and check for any specific requirements.
-The output must be a JSON object with a "summary" (a one to two-line overview stating which lender/client is present and if their requirements are met) and a "details" array. Each object in the "details" array should have "requirement", "status", and "value_or_comment" keys.
+Your output must be a single, clean JSON object. Do not include any text outside of the JSON object.
+The JSON object must have a "summary" (a one to two-line overview stating which lender/client is present and if their requirements are met) and a "details" array.
+Each object in the "details" array represents a requirement and must have the following keys:
+- "requirement": A string describing the client-specific rule being checked.
+- "status": A string, which must be one of 'Fulfilled', 'Not Fulfilled', 'Needs Review', or 'Not Applicable'.
+- "value_or_comment": A string containing the extracted value or a brief comment explaining the status. If a value is extracted, also include the page number.
 
 Lender/Client List and their requirements:
 - Visio Lending:
   - Report Condition: Verify the report is made "As Is". If not, status is "Needs Review" with comment: "Report is not 'As Is', please advise before rejecting."
   - No Repairs: Even if the report is "As Is", verify there are no repairs listed. If repairs are found, status is "Needs Review" with comment: "This is Visio. Report made as-is and the subject has repair, please refer the snap and advise."
   - Reviewer Notes: No need to check for specific neighborhood words (Average, convenient, good, desirable). UAD pages are not mandatory.
+
 - Best2Lend LLC:
   - Two-Value Report Requirements: For reports with two values ("As-Is" and "As-Repaired"), the "As-Is" comps are not required to be gridded.
 - Ice Lender Holdings LLC:
@@ -33,7 +39,6 @@ Lender/Client List and their requirements:
   - Photographs: Based on photo labels or descriptions, verify that photos of the interior, exterior, all mechanical systems, full kitchen (including refrigerator, stove, oven, sink), and the roof are present.
   - Kitchen Photo with Refrigerator: Specifically confirm the kitchen photo shows a refrigerator. If not, status is "Not Fulfilled" with comment "Per client instructions, please provide a kitchen photo with the refrigerator showing. If there is no refrigerator in the kitchen, please address as comments in the report."
   - Comparable Distance Guidelines: Based on the neighborhood location type (Urban, Suburban, or Rural), check the 'Proximity to Subject' for each comparable sale against these guidelines: Urban <= 1 mile, Suburban <= 3 miles, Rural <= 10 miles. If any comparable exceeds the guideline, its status is "Not Fulfilled" with the comment "Comp #X exceeds the client's distance guideline of Y mile(s). Please address the need to use this comp."
- 
 - Equity Wave Lending, Inc:
   - Intended Use/User Verbiage: Verify the report contains the specific "Intended User" and "Intended Use" statements.
     - Intended User: "Equity Wave Lending, Inc. it's investors, assignees, and/or successors"

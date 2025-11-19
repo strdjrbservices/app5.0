@@ -14,7 +14,14 @@ import {
   Stack,
 } from '@mui/material';
 
-export const ESCALATION_CHECK_PROMPT = `Analyze the appraisal report based on the following escalation rules. Your output must be a single, clean JSON object with a "summary" (a one to two-line overview of findings) and a "details" array. Each object in the "details" array should have "requirement", "status" ('Needs Escalation' or 'OK'), and "value_or_comment" keys.
+export const ESCALATION_CHECK_PROMPT = `
+Analyze the appraisal report for the following escalation rules.
+Your output must be a single, clean JSON object. Do not include any text outside of the JSON object.
+The JSON object must have a "summary" (a one to two-line overview of findings) and a "details" array.
+Each object in the "details" array represents a rule and must have the following keys:
+- "requirement": A string describing the escalation rule being checked.
+- "status": A string, which must be one of 'Needs Escalation' or 'OK'.
+- "value_or_comment": A string containing the extracted value or a brief comment explaining the status. If a value is extracted, also include the page number.
 
 Escalation Rules (Please advise on below point:):
 1. Assignment Type Mismatch: If order form indicates ‘Purchase’ but report is marked ‘Refinance’, or vice-versa.

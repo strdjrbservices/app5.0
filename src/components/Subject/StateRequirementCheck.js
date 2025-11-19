@@ -15,32 +15,37 @@ import {
 } from '@mui/material';
 
 export const STATE_REQUIREMENTS_PROMPT = `
-Based on the property's state, verify the following state-specific appraisal requirements from the document.
-For each requirement, indicate if it is "Fulfilled", "Not Fulfilled", or "Not Applicable". Provide the extracted value or a brief comment.
-The output must be a JSON object with a "summary" (a one to two-line overview) and a "details" array. Each object in the "details" array should have "requirement", "status", and "value_or_comment" keys.
+Analyze the appraisal report for state-specific requirements based on the property's state.
+Your output must be a single, clean JSON object. Do not include any text outside of the JSON object.
+The JSON object must have a "summary" (a one to two-line overview of findings) and a "details" array.
+Each object in the "details" array represents a requirement and must have the following keys:
+- "requirement": A string describing the state-specific rule being checked.
+- "status": A string, which must be one of 'Fulfilled', 'Not Fulfilled', or 'Not Applicable'.
+- "value_or_comment": A string containing the extracted value or a brief comment explaining the status. If a value is extracted, also include the page number.
 
 State-Specific Requirements:
-- Appraiser’s fee disclosed: Required for AZ, CO, CT, GA, IL, LA, NJ, NV, NM, ND, OH, UT, VA, VT, WV.
-- AMC License # included: Required for GA, IL, MT, NJ, OH, VT.
-- AMC License # and expiration date: Required for IL (e.g., "558000312, Exp: 12/31/2026").
-- AMC fee included: Required for NV, NM, UT.
-- Smoke/CO detectors & double-strapped water heater comment: Required for CA.
-- CO detector comment for properties built after 2008: Required for CA.
-- Appraiser’s fee & AMC License # required: Required for GA.
-- Illinois specific requirements:
-  1. AMC License # 558000312 and Expiration 12/31/2026.
-  2. Appraiser must disclose fee.
-  3. Include Illinois Administrative Code 1455.245 statement in the addendum.
-  4. Comment on Carbon Monoxide detector presence and provide photos.
-- Utah specific requirements:
-  1. Comment on double-strapped water heaters.
-  2. AMC fee must be included.
-  3. Appraiser’s fee must be disclosed.
-- Virginia specific requirements: Confirm if smoke and CO detectors are installed.
-- Wisconsin specific requirements:
-  1. Attach a copy of the invoice.
-  2. Confirm CO detector installation per Wis. Stat. Ann. § 101.647.
-- New York specific requirements: Invoice copy should be included (except for Plaza Home Mortgage).
+- **Appraiser’s Fee Disclosure**: Required for AZ, CO, CT, GA, IL, LA, NJ, NV, NM, ND, OH, UT, VA, VT, WV.
+- **AMC License # Inclusion**: Required for GA, IL, MT, NJ, OH, VT.
+- **AMC License # and Expiration Date**: Required for IL (e.g., "558000312, Exp: 12/31/2026").
+- **AMC Fee Inclusion**: Required for NV, NM, UT.
+- **California (CA)**:
+  - Comment on smoke/CO detectors.
+  - Comment on double-strapped water heater.
+  - For properties built after 2008, a specific CO detector comment is needed.
+- **Illinois (IL)**:
+  - AMC License # must be '558000312' with expiration '12/31/2026'.
+  - Appraiser must disclose their fee.
+  - Addendum must include the "Illinois Administrative Code 1455.245" statement.
+  - Report must comment on Carbon Monoxide detector presence and include photos.
+- **Utah (UT)**:
+  - Comment on double-strapped water heaters.
+  - AMC fee must be included.
+  - Appraiser’s fee must be disclosed.
+- **Virginia (VA)**: Confirm if smoke and CO detectors are installed.
+- **Wisconsin (WI)**:
+  - A copy of the invoice must be attached.
+  - Confirm CO detector installation per Wis. Stat. Ann. § 101.647.
+- **New York (NY)**: A copy of the invoice should be included (unless the client is Plaza Home Mortgage).
 `;
 
 const StateRequirementCheck = ({ onPromptSubmit, loading, response, error }) => {
