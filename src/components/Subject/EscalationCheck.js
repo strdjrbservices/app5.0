@@ -68,38 +68,53 @@ const EscalationCheck = ({ onPromptSubmit, loading, response, error }) => {
           <Typography variant="h6" gutterBottom component="div" color="primary.main">Summary</Typography>
           <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>{summary}</Typography>
         </Paper>
-        {details.length > 0 && (
-          <Paper elevation={1} sx={{ p: 2 }}>
-            <Typography variant="h6" gutterBottom component="div" color="primary.main">Details</Typography>
-            <TableContainer>
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell sx={{ fontWeight: 'bold' }}>Sr. No.</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold' }}>Requirement</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold' }}>Status</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold' }}>Value / Comment</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {details.map((item, index) => (
+        <Paper elevation={1} sx={{ p: 2 }}>
+          <Typography variant="h6" gutterBottom component="div" color="primary.main">Details</Typography>
+          <TableContainer>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Requirement</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Status</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Value / Comment</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {details.length > 0 ? (
+                  details.map((item, index) => (
                     <TableRow
                       key={index}
                       sx={{
                         backgroundColor: item.status === 'Needs Escalation' ? 'error.light' : 'inherit',
                       }}
                     >
-                      <TableCell>{index + 1}</TableCell>
                       <TableCell>{item.requirement}</TableCell>
                       <TableCell>{item.status}</TableCell>
-                      <TableCell>{item.value_or_comment}</TableCell>
+                      <TableCell>
+                        {typeof item.value_or_comment === 'object' && item.value_or_comment !== null ? (
+                          <>
+                            {item.value_or_comment.value && (
+                              <Typography variant="body2">{item.value_or_comment.value}</Typography>
+                            )}
+                            {item.value_or_comment.page_no && (
+                              <Typography variant="caption" color="text.secondary">
+                                Page: {item.value_or_comment.page_no}
+                              </Typography>
+                            )}
+                          </>
+                        ) : (
+                          String(item.value_or_comment)
+                        )}
+                      </TableCell>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </Paper>
-        )}
+                  ))
+                ) : (
+                  <TableRow><TableCell colSpan={4} align="center">No escalation items found.</TableCell></TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Paper>
       </Stack>
     );
   }, [response]);

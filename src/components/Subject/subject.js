@@ -177,6 +177,67 @@ const ContractComparisonDialog = ({ open, onClose, onCompare, loading, result, e
   );
 };
 
+const EngagementLetterDialog = ({ open, onClose, onCompare, loading, result, error, selectedFile, engagementLetterFile, mainData }) => {
+  const handleClose = () => {
+    onClose();
+  };
+
+  return (
+    <Dialog open={open} onClose={handleClose} maxWidth={result ? "md" : "sm"} fullWidth>
+      <DialogTitle>
+        Engagement Letter Comparison
+        <IconButton
+          aria-label="close"
+          onClick={handleClose}
+          sx={{ position: 'absolute', right: 8, top: 8, color: (theme) => theme.palette.grey[500] }}
+        >
+          <CloseIcon />
+        </IconButton>
+      </DialogTitle>
+      <DialogContent dividers>
+        {loading && <Box sx={{ display: 'flex', justifyContent: 'center', my: 3 }}><CircularProgress /></Box>}
+        {error && <Alert severity="error" sx={{ my: 2 }}>{error}</Alert>}
+        {result ? (
+          <TableContainer component={Paper} sx={{ mt: 2 }}>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Field</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Main Report</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Engagement Letter</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }} align="center">Status</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {result.map((item, index) => (
+                  <TableRow key={index} sx={{ '&:last-child td, &:last-child th': { border: 0 } }}>
+                    <TableCell>{item.field}</TableCell>
+                    <TableCell>{item.main_report_value || 'N/A'}</TableCell>
+                    <TableCell>{item.engagement_letter_value || 'N/A'}</TableCell>
+                    <TableCell align="center">
+                      {item.status === 'Match' ? <CheckCircleOutlineIcon color="success" /> : <ErrorOutlineIcon color="error" />}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        ) : !loading && (
+          <Typography>
+            Click 'Compare' to check for consistency in Property Address and Vendor's Fee between the main report and the engagement letter.
+          </Typography>
+        )}
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={handleClose}>Close</Button>
+        <Button onClick={onCompare} variant="contained" disabled={loading || !selectedFile || !engagementLetterFile}>
+          {loading ? <CircularProgress size={24} /> : (result ? 'Reload' : 'Compare')}
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+};
+
 export const ComparableAddressConsistency = ({ data, comparableSales, extractionAttempted, onDataChange, editingField, setEditingField, isEditable, allData }) => {
   return (
     <div id="comparable-address-consistency-section" style={{}} className="card shadow ">
@@ -901,6 +962,12 @@ function Subject() {
   const [contractCompareLoading, setContractCompareLoading] = useState(false);
   const [contractCompareResult, setContractCompareResult] = useState(null);
   const [contractCompareError, setContractCompareError] = useState('');
+  
+  const [isEngagementLetterDialogOpen, setIsEngagementLetterDialogOpen] = useState(false);
+  const [engagementLetterCompareLoading, setEngagementLetterCompareLoading] = useState(false);
+  const [engagementLetterCompareResult, setEngagementLetterCompareResult] = useState(null);
+  const [engagementLetterCompareError, setEngagementLetterCompareError] = useState('');
+
 
 
   const unpaidOkLenders = [
@@ -1044,12 +1111,50 @@ function Subject() {
     }
   };
 
+  const handleEngagementLetterCompare = async () => {
+    if (!selectedFile || !engagementLetterFile) {
+      setNotification({ open: true, message: 'Please upload both the main report and the engagement letter.', severity: 'warning' });
+      return;
+    }
+    setEngagementLetterCompareLoading(true);
+    setEngagementLetterCompareError('');
+    setEngagementLetterCompareResult(null);
+
+    const formData = new FormData();
+    formData.append('main_report_file', selectedFile);
+    formData.append('engagement_letter_file', engagementLetterFile);
+
+    try {
+      const response = await fetch('https://strdjrbservices1.pythonanywhere.com/api/compare-engagement-letter/', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Failed to compare documents.');
+      }
+
+      const result = await response.json();
+      setEngagementLetterCompareResult(result.comparison_results);
+
+    } catch (error) {
+      setEngagementLetterCompareError(error.message);
+      setNotification({ open: true, message: error.message, severity: 'error' });
+    } finally {
+      setEngagementLetterCompareLoading(false);
+    }
+  };
+
 
   const onEngagementLetterFileChange = (e) => {
     const file = e.target.files && e.target.files[0];
     if (file) {
       setEngagementLetterFile(file);
       setNotification({ open: true, message: 'Engagement letter uploaded.', severity: 'success' });
+      setIsEngagementLetterDialogOpen(true);
+      setEngagementLetterCompareResult(null);
+      setEngagementLetterCompareError('');
     }
   };
 
@@ -2019,9 +2124,19 @@ function Subject() {
     throw new Error(`Failed to fetch from ${url} after ${retries} attempts.`);
   };
 
-  const handleStateRequirementCheck = async () => {
+  const handleStateRequirementCheck = async (forceReload = false) => {
     if (!selectedFile) {
       setStateReqError('Please select a PDF file first.');
+      return;
+    }
+
+    if (stateReqResponse && !forceReload) {
+      setModalContent({
+        title: 'State Requirement Check',
+        Component: StateRequirementCheck,
+        props: { loading: false, response: stateReqResponse, error: stateReqError }
+      });
+      setIsCheckModalOpen(true);
       return;
     }
 
@@ -2078,9 +2193,19 @@ function Subject() {
     }
   };
 
-  const handleUnpaidOkCheck = async () => {
+  const handleUnpaidOkCheck = async (forceReload = false) => {
     if (!selectedFile) {
       setUnpaidOkError('Please select a PDF file first.');
+      return;
+    }
+
+    if (unpaidOkResponse && !forceReload) {
+      setModalContent({
+        title: 'Unpaid OK Lender Check',
+        Component: UnpaidOkCheck,
+        props: { loading: false, response: unpaidOkResponse, error: unpaidOkError }
+      });
+      setIsCheckModalOpen(true);
       return;
     }
 
@@ -2132,9 +2257,19 @@ function Subject() {
     }
   };
 
-  const handleClientRequirementCheck = async () => {
+  const handleClientRequirementCheck = async (forceReload = false) => {
     if (!selectedFile) {
       setClientReqError('Please select a PDF file first.');
+      return;
+    }
+
+    if (clientReqResponse && !forceReload) {
+      setModalContent({
+        title: 'Client Requirement Check',
+        Component: ClientRequirementCheck,
+        props: { loading: false, response: clientReqResponse, error: clientReqError }
+      });
+      setIsCheckModalOpen(true);
       return;
     }
 
@@ -2186,9 +2321,19 @@ function Subject() {
     }
   };
 
-  const handleFhaCheck = async () => {
+  const handleFhaCheck = async (forceReload = false) => {
     if (!selectedFile) {
       setFhaError('Please select a PDF file first.');
+      return;
+    }
+
+    if (fhaResponse && !forceReload) {
+      setModalContent({
+        title: 'FHA Requirement Check',
+        Component: FhaCheck,
+        props: { loading: false, response: fhaResponse, error: fhaError }
+      });
+      setIsCheckModalOpen(true);
       return;
     }
 
@@ -2240,9 +2385,19 @@ function Subject() {
     }
   };
 
-  const handleEscalationCheck = async () => {
+  const handleEscalationCheck = async (forceReload = false) => {
     if (!selectedFile) {
       setEscalationError('Please select a PDF file first.');
+      return;
+    }
+
+    if (escalationResponse && !forceReload) {
+      setModalContent({
+        title: 'Escalation Check',
+        Component: EscalationCheck,
+        props: { loading: false, response: escalationResponse, error: escalationError }
+      });
+      setIsCheckModalOpen(true);
       return;
     }
 
@@ -2973,6 +3128,18 @@ function Subject() {
             contractFile={contractFile}
             mainData={data}
           />
+          <EngagementLetterDialog
+            open={isEngagementLetterDialogOpen}
+            onClose={() => setIsEngagementLetterDialogOpen(false)}
+            onCompare={handleEngagementLetterCompare}
+            loading={engagementLetterCompareLoading}
+            result={engagementLetterCompareResult}
+            error={engagementLetterCompareError}
+            selectedFile={selectedFile}
+            engagementLetterFile={engagementLetterFile}
+            mainData={data}
+          />
+
 
           <Snackbar open={notification.open} autoHideDuration={6000} onClose={handleCloseNotification} anchorOrigin={{ vertical: 'top', horizontal: 'center' }}>
             <Alert onClose={handleCloseNotification} severity={notification.severity} variant="filled" sx={{ width: '100%' }}>
@@ -3020,6 +3187,24 @@ function Subject() {
             <DialogContent dividers>
               <modalContent.Component {...modalContent.props} />
             </DialogContent>
+            <DialogActions>
+              <Button onClick={() => setIsCheckModalOpen(false)}>Close</Button>
+              {modalContent.title === 'State Requirement Check' && (
+                <Button onClick={() => handleStateRequirementCheck(true)} variant="contained" disabled={stateReqLoading}>
+                  {stateReqLoading ? <CircularProgress size={24} /> : 'Reload'}
+                </Button>
+              )}
+              {modalContent.title === 'Client Requirement Check' && (
+                <Button onClick={() => handleClientRequirementCheck(true)} variant="contained" disabled={clientReqLoading}>
+                  {clientReqLoading ? <CircularProgress size={24} /> : 'Reload'}
+                </Button>
+              )}
+              {modalContent.title === 'Escalation Check' && (
+                <Button onClick={() => handleEscalationCheck(true)} variant="contained" disabled={escalationLoading}>
+                  {escalationLoading ? <CircularProgress size={24} /> : 'Reload'}
+                </Button>
+              )}
+            </DialogActions>
           </Dialog>
         )}
       </div>
@@ -3029,4 +3214,3 @@ function Subject() {
 }
 
 export default Subject;
-
