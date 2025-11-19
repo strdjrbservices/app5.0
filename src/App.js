@@ -21,12 +21,14 @@ function App() {
               className={`btn ${location.pathname === '/extractor' ? 'btn-primary' : 'btn-buttom-primary'
                 } me-2`}
 
+              target="_blank" rel="noopener noreferrer"
             >
               FULL FILE REVIEW 
             </Link>
             <Link
               to="/Compare"
 
+              target="_blank" rel="noopener noreferrer"
               className={`btn ${location.pathname === '/Compare' ? 'btn-primary' : 'btn-buttom-primary'
                 }`}
             >
@@ -34,19 +36,21 @@ function App() {
             </Link>
             <Link
               to="/query"
+              target="_blank" rel="noopener noreferrer"
               className={`btn ${location.pathname === '/query' ? 'btn-primary' : 'btn-buttom-primary'
                 }`}
             >
               Custom Query
             </Link>
 
-            <Link
+            {/* <Link
               to="/html-extractor"
+              target="_blank" rel="noopener noreferrer"
               className={`btn ${location.pathname === '/html-extractor' ? 'btn-primary' : 'btn-buttom-primary'
                 }`}
             >
               HTML Extractor
-            </Link>
+            </Link> */}
           </div>
         </nav>
       )}

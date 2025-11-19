@@ -2758,14 +2758,26 @@ function Subject() {
           loading={loading}
         />
         <div className={`main-content container-fluid ${isSidebarOpen || isSidebarLocked ? 'sidebar-open' : ''}`}>
-          <div className="header-container">
-            <img
+          <Box
+            className="header-container"
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 2,
+              my: 2,
+            }}
+          >
+            <Box
+              component="img"
               src={process.env.PUBLIC_URL + '/logo.png'}
               alt="logo"
-              className="logo" style={{ height: '150px' }}
+              sx={{ height: { xs: 80, md: 100 }, width: 'auto' }}
             />
-            <h2 className="app-title">FULL FILE REVIEW</h2>
-          </div>
+            <Typography variant="h3" component="h1" className="app-title" sx={{ fontFamily:'BBH Sans Hegarty',fontWeight: 'bold', fontSize: { xs: '2rem', md: '3rem' } }}>
+              FULL FILE REVIEW
+            </Typography>
+          </Box>
 
 
 

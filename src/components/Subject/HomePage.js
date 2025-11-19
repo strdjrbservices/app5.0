@@ -13,19 +13,19 @@ const HomePage = () => {
           Please select a tool to get started.
         </Typography>
         <Stack direction="row" spacing={2} justifyContent="center">
-          <Button component={Link} to="/extractor" variant="contained" size="large">
+          <Button component={Link} to="/extractor" variant="contained" size="large" >
             FULL FILE REVIEW
           </Button>
-           <Button component={Link} to="/response" variant="contained" color="info" size="large">
+           <Button component={Link} to="/response" variant="contained" color="info" size="large" target="_blank" rel="noopener noreferrer">
             REVISED FILE REVIEW
           </Button>
-          <Button component={Link} to="/query" variant="contained" color="secondary" size="large">
+          <Button component={Link} to="/query" variant="contained" color="secondary" size="large" target="_blank" rel="noopener noreferrer">
             Custom Query
           </Button>
          
-          <Button component={Link} to="/html-extractor" variant="contained" color="secondary" size="large">
+          {/* <Button component={Link} to="/html-extractor" variant="contained" color="secondary" size="large" target="_blank" rel="noopener noreferrer">
             HTML Extractor
-          </Button>
+          </Button> */}
         </Stack>
       </Paper>
     </Box>

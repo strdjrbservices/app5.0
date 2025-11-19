@@ -214,6 +214,12 @@ const Compare = () => {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+    // This function is now primarily triggered by handleModeChange.
+    // We can call it with the current comparisonMode.
+    await startComparison(comparisonMode);
+  };
+
+  const startComparison = async (mode) => {
     setLoading(true);
     setError('');
     setResponse(null);
@@ -228,7 +234,7 @@ const Compare = () => {
     const formData = new FormData();
     let endpoint = '';
 
-    if (comparisonMode === 'revision') {
+    if (mode === 'revision') {
       if (!newPdfFile || !revisionText) {
         setError('Please provide a PDF file and ensure revision text is extracted.');
         setLoading(false);
@@ -238,7 +244,7 @@ const Compare = () => {
       formData.append('form_type', '1004'); // Or make this selectable
       formData.append('revision_request', revisionText);
       endpoint = 'https://strdjrbservices1.pythonanywhere.com/api/extract/';
-    } else if (comparisonMode === 'checklist') {
+    } else if (mode === 'checklist') {
       if (!oldPdfFile || !newPdfFile) {
         setError('Both Old and New PDF files must be provided for this check.');
         setLoading(false);
@@ -248,7 +254,7 @@ const Compare = () => {
       formData.append('new_pdf_file', newPdfFile);
       formData.append('revision_request', CHECKLIST_PROMPT);
       endpoint = 'https://strdjrbservices1.pythonanywhere.com/api/compare-pdfs/';
-    } else if (comparisonMode === 'pdf-html') {
+    } else if (mode === 'pdf-html') {
       if (!newPdfFile || !htmlFile) {
         setError('Both PDF and HTML files must be provided for this comparison.');
         setLoading(false);
@@ -291,9 +297,9 @@ const Compare = () => {
       }
 
       const result = JSON.parse(rawText);
-      if (comparisonMode === 'revision') {
+      if (mode === 'revision') {
         setResponse(result.fields);
-      } else if (comparisonMode === 'checklist') {
+      } else if (mode === 'checklist') {
         setResponse(result);
       } else {
         setResponse(result);
@@ -321,10 +327,11 @@ const Compare = () => {
     if (newMode !== null) {
       setComparisonMode(newMode);
       setResponse(null);
-      setError('');
       setOldPdfPageCount(null);
       setNewPdfPageCount(null);      
       setRevisionText('');
+      // Directly start the comparison process.
+      startComparison(newMode);
     }
   };
 
@@ -523,6 +530,27 @@ const Compare = () => {
         <ToggleButton value="pdf-html">PDF/HTML</ToggleButton>
         <ToggleButton value="pdf-pdf">PDF/PDF</ToggleButton>
       </ToggleButtonGroup> */}
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 2,
+          my: 2,
+        }}
+      >
+        <Box
+          component="img"
+          src={process.env.PUBLIC_URL + '/logo.png'}
+          alt="logo"
+          sx={{ height: { xs: 60, md: 80 }, width: 'auto' }}
+        />
+        <Typography variant="h3" component="h1" sx={{ fontWeight: 'bold', fontSize: { xs: '1.8rem', md: '2.5rem' } }}>
+          REVISED FILE REVIEW
+        </Typography>
+      </Box>
+
+
 
       {/* Unified File Upload Section */}
       <Paper variant="outlined" sx={{ p: 3, mb: 3 }}>
@@ -560,8 +588,8 @@ const Compare = () => {
         aria-label="Comparison Mode"
         sx={{ mb: 3 }}
       >
-        <ToggleButton value="checklist">Confirmation Checklist</ToggleButton>
         <ToggleButton value="revision">Revision Verification</ToggleButton>
+        <ToggleButton value="checklist">Confirmation Checklist</ToggleButton>
         <ToggleButton value="pdf-html">PDF/HTML</ToggleButton>
         <ToggleButton value="pdf-pdf">PDF/PDF</ToggleButton>
       </ToggleButtonGroup>
