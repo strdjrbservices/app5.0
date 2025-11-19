@@ -1,6 +1,6 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import './Subject.css';
-import { GlobalStyles } from '@mui/system';
+import { GlobalStyles, keyframes } from '@mui/system';
 import { Info, Warning as WarningIcon, Brightness4 as Brightness4Icon, Brightness7 as Brightness7Icon, Close as CloseIcon, CheckCircleOutline as CheckCircleOutlineIcon, ErrorOutline as ErrorOutlineIcon } from '@mui/icons-material';
 import { Button, Stack, List, ListItem, ListItemButton, ListItemText, FormControl, InputLabel, Select, MenuItem, IconButton, Tooltip, Paper, Box, Typography, LinearProgress, Alert, Snackbar, Fade, CircularProgress, ThemeProvider, CssBaseline, TableContainer, Table, TableHead, TableRow, TableCell, TableBody, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Grid } from '@mui/material';
 import jsPDF from 'jspdf';
@@ -19,6 +19,13 @@ import { lightTheme, darkTheme } from '../../theme';
 import uploadSoundFile from '../../Assets/upload.mp3';
 import successSoundFile from '../../Assets/success.mp3';
 import errorSoundFile from '../../Assets/error.mp3';
+import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
+
+const bounce = keyframes`
+  0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-8px); }
+  60% { transform: translateY(-4px); }
+`;
 
 
 const TooltipStyles = () => (
@@ -58,7 +65,7 @@ const TooltipStyles = () => (
   }} />
 );
 
-const Sidebar = ({ sections, isOpen, isLocked, onLockToggle, onMouseEnter, onMouseLeave, onSectionClick, onThemeToggle, currentTheme, activeSection }) => (
+const Sidebar = ({ sections, isOpen, isLocked, onLockToggle, onMouseEnter, onMouseLeave, onSectionClick, onThemeToggle, currentTheme, activeSection, loading, loadingSection, extractedSections, visibleSections, onArrowClick }) => (
   <div className={`sidebar ${isOpen ? 'open' : 'closed'}`} onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>
     <div className="sidebar-header">
       <img src={process.env.PUBLIC_URL + '/logo.png'} alt="logo" className="sidebar-logo" />
@@ -80,8 +87,18 @@ const Sidebar = ({ sections, isOpen, isLocked, onLockToggle, onMouseEnter, onMou
     <List dense>
       {sections.map((section) => (
         <ListItem key={section.id} disablePadding>
-          <ListItemButton component="a" href={`#${section.id}`} className={`sidebar-link ${activeSection === section.id ? 'active' : ''}`} onClick={() => onSectionClick(section)}>
+          <ListItemButton component="a" href={`#${section.id}`} className={`sidebar-link ${activeSection === section.id ? 'active' : ''}`} onClick={() => onSectionClick(section)} disabled={loading}>
             <ListItemText primary={section.title} />
+            {loadingSection === section.id && (
+              <Box sx={{ display: 'flex', alignItems: 'center', ml: 1 }}>
+                <CircularProgress size={16} color="inherit" />
+              </Box>
+            )}
+            {extractedSections.has(section.id) && !visibleSections.has(section.id) && loadingSection !== section.id && (
+              <IconButton size="small" onClick={(e) => { e.stopPropagation(); onArrowClick(section.id); }} sx={{ rotate: '270deg', animation: `${bounce} 2s infinite`, ml: 'auto' }}>
+                <ArrowDownwardIcon fontSize="small" />
+              </IconButton>
+            )}
           </ListItemButton>
         </ListItem>
       ))}
@@ -844,6 +861,7 @@ function Subject() {
   const [isComparisonDialogOpen, setIsComparisonDialogOpen] = useState(false);
   const [comparisonData, setComparisonData] = useState({
     // This will be populated from HTML extraction
+
   });
   const [activeSection, setActiveSection] = useState(null);
   const [promptAnalysisLoading, setPromptAnalysisLoading] = useState(false);
@@ -867,9 +885,12 @@ function Subject() {
   const [escalationLoading, setEscalationLoading] = useState(false);
   const [escalationResponse, setEscalationResponse] = useState(null);
   const [escalationError, setEscalationError] = useState('');
+  const [extractedSections, setExtractedSections] = useState(new Set());
+  const [visibleSections, setVisibleSections] = useState(new Set());
   const [htmlFile, setHtmlFile] = useState(null);
   const [contractFile, setContractFile] = useState(null);
   const [engagementLetterFile, setEngagementLetterFile] = useState(null);
+  const [loadingSection, setLoadingSection] = useState(null);
 
   const [manualValidations, setManualValidations] = useState({});
 
@@ -990,65 +1011,39 @@ function Subject() {
 
   const handleContractCompare = async () => {
     if (!selectedFile || !contractFile) {
-      setNotification({ open: true, message: 'Both main PDF and Contract PDF files are required for comparison.', severity: 'warning' });
+      setNotification({ open: true, message: 'Please upload both the main report and the contract copy.', severity: 'warning' });
       return;
     }
     setContractCompareLoading(true);
     setContractCompareError('');
     setContractCompareResult(null);
 
-    try {
-      // 1. Extract from Contract PDF
-      const extractFormData = new FormData();
-      extractFormData.append('file', contractFile);
-      extractFormData.append('form_type', selectedFormType);
-      extractFormData.append('comment', 'Extract the "Contract Price $" and "Date of Contract".');
+    const formData = new FormData();
+    formData.append('main_report_file', selectedFile);
+    formData.append('contract_copy_file', contractFile);
 
-      const extractRes = await fetch('https://strdjrbservices1.pythonanywhere.com/api/extract/', {
+    try {
+      const response = await fetch('https://strdjrbservices1.pythonanywhere.com/api/compare-contract/', {
         method: 'POST',
-        body: extractFormData,
+        body: formData,
       });
 
-      if (!extractRes.ok) {
-        const errorText = await extractRes.text();
-        throw new Error(`Extraction failed: ${errorText}`);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Failed to compare documents.');
       }
-      const extractResult = await extractRes.json();
-      // Handle both nested and flat response structures
-      const extractedFields = extractResult.fields
-        ? (extractResult.fields.CONTRACT || extractResult.fields)
-        : (extractResult.CONTRACT || extractResult);
 
-      // 2. Prepare data for display
-      const contractPriceFromContract = extractedFields['Contract Price $'];
-      const contractDateFromContract = extractedFields['Date of Contract'];
+      const result = await response.json();
+      setContractCompareResult(result); // This result will be an array as defined in the prompt
 
-      const contractPriceFromMain = data?.CONTRACT?.['Contract Price $'];
-      const contractDateFromMain = data?.CONTRACT?.['Date of Contract'];
-
-      const finalResult = [
-        {
-          field: 'Contract Price',
-          old_value: contractPriceFromMain,
-          new_value: contractPriceFromContract,
-          status: String(contractPriceFromMain) === String(contractPriceFromContract) ? 'Match' : 'Mismatch',
-        },
-        {
-          field: 'Contract Date',
-          old_value: contractDateFromMain,
-          new_value: contractDateFromContract,
-          status: String(contractDateFromMain) === String(contractDateFromContract) ? 'Match' : 'Mismatch',
-        }
-      ];
-
-      setContractCompareResult(finalResult);
-      setNotification({ open: true, message: 'Contract comparison successful!', severity: 'success' });
     } catch (error) {
       setContractCompareError(error.message);
+      setNotification({ open: true, message: error.message, severity: 'error' });
     } finally {
       setContractCompareLoading(false);
     }
   };
+
 
   const onEngagementLetterFileChange = (e) => {
     const file = e.target.files && e.target.files[0];
@@ -1565,7 +1560,7 @@ function Subject() {
   };
   const formTypes = ['1004', '1004C', '1004D', '1025', '1073', '2090', '203k-FHA', '2055', '1075', '2095', '1007', '216'];
 
-  const sections = [
+  const sections = useMemo(() => [
     { id: 'subject-info', title: 'Subject', category: 'SUBJECT' }, // Root level data
     { id: 'contract-section', title: 'Contract', category: 'CONTRACT' },
     { id: 'neighborhood-section', title: 'Neighborhood', category: 'NEIGHBORHOOD' },
@@ -1591,7 +1586,7 @@ function Subject() {
     { id: 'prompt-analysis-section', title: 'Prompt Analysis' },
     { id: 'raw-output', title: 'Raw Output' },
 
-  ];
+  ], []);
 
   const salesGridRows = [
 
@@ -1870,14 +1865,14 @@ function Subject() {
     setExtractionProgress(100);
   };
 
-  const handleExtract = async (category) => {
+  const handleExtract = async (category, sectionId) => {
     setNotification({ open: false, message: '', severity: 'info' });
     if (!validateInputs()) return;
     // If no category is provided, and the user clicks the main extract button,
     // we should probably extract everything. For now, we require a section.
     // This logic can be adjusted based on desired behavior for a "full extract" button.
     if (!category && !selectedFile) {
-      setNotification({ open: true, message: 'Please select a section from the sidebar to extract.', severity: 'info' });
+      setNotification({ open: true, message: 'Please select a section from the sidebar to extract.', severity: 'info' }); // This logic can be adjusted based on desired behavior for a "full extract" button.
       return;
     }
 
@@ -1885,6 +1880,8 @@ function Subject() {
     const startTime = Date.now();
     const categories = Array.isArray(category) ? category : [category];
 
+    setLoadingSection(sectionId);
+    setExtractedSections(prev => new Set(prev).add(sectionId));
     const extractionPromises = categories.map(cat =>
       callExtractionAPI(selectedFormType, cat, (attempt, maxAttempts) => {
         setNotification({ open: true, message: `Extraction for ${cat} failed. Retrying... (Attempt ${attempt}/${maxAttempts})`, severity: 'warning' });
@@ -1908,6 +1905,7 @@ function Subject() {
     } finally {
       if (timerRef.current) clearInterval(timerRef.current);
       setLoading(false);
+      setLoadingSection(null);
       if (extractionProgress !== 100) setExtractionProgress(0);
     }
   };
@@ -1920,7 +1918,7 @@ function Subject() {
       return;
     }
 
-    const initialCategories = ['SUBJECT', 'CONTRACT', 'SITE', 'IMPROVEMENTS', 'SALES_GRID'];
+    const initialCategories = ['SUBJECT'];
     setLoading(true);
     setExtractionAttempted(true);
     setTimer(0);
@@ -2296,19 +2294,43 @@ function Subject() {
 
   const handleSectionClick = (section) => {
     setActiveSection(section.id);
+    const element = document.getElementById(section.id);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
     if (!section.category) {
       // If the section doesn't have a specific category to extract, just scroll.
-      const element = document.getElementById(section.id);
-      if (element) {
-        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
       return;
     }
 
     setNotification({ open: true, message: `Extracting ${section.title}...`, severity: 'info' });
-    handleExtract(section.category);
+    handleExtract(section.category, section.id);
   };
 
+  const handleArrowClick = (sectionId) => {
+    const element = document.getElementById(sectionId);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        setVisibleSections(prev => {
+          const newVisible = new Set(prev);
+          entries.forEach(entry => {
+            if (entry.isIntersecting) newVisible.add(entry.target.id);
+            else newVisible.delete(entry.target.id);
+          });
+          return newVisible;
+        });
+      },
+      { root: null, rootMargin: '0px', threshold: 0.1 }
+    );
+    sections.forEach(section => { const el = document.getElementById(section.id); if (el) observer.observe(el); });
+    return () => observer.disconnect();
+  }, [data, sections]);
   useEffect(() => {
     // Remove previous highlight
     document.querySelectorAll('.section-active').forEach(el => {
@@ -2574,6 +2596,11 @@ function Subject() {
           onThemeToggle={handleThemeChange}
           currentTheme={themeMode}
           activeSection={activeSection}
+          loadingSection={loadingSection}
+          extractedSections={extractedSections}
+          visibleSections={visibleSections}
+          onArrowClick={handleArrowClick}
+          loading={loading}
         />
         <div className={`main-content container-fluid ${isSidebarOpen || isSidebarLocked ? 'sidebar-open' : ''}`}>
           <div className="header-container">
@@ -2619,6 +2646,7 @@ function Subject() {
                     onChange={onFileChange}
                   />
                 </Button>
+                {/* {selectedFile && <Typography variant="caption" sx={{ display: 'block', mt: 1 }}>{selectedFile.name}</Typography>} */}
               </Grid>
 
               {/* Optional HTML File */}
@@ -2633,7 +2661,9 @@ function Subject() {
                     onChange={onHtmlFileChange}
                   />
                 </Button>
-                {htmlFile && <Typography variant="caption" sx={{ ml: 1 }}>{htmlFile.name}</Typography>}
+
+                
+
               </Grid>
 
               {/* Optional Contract Copy */}
@@ -2648,7 +2678,9 @@ function Subject() {
                     onChange={onContractFileChange}
                   />
                 </Button>
-                {contractFile && <Typography variant="caption" sx={{ ml: 1 }}>{contractFile.name}</Typography>}
+                {/* {contractFile && <Typography variant="caption" sx={{ ml: 1 }}>{contractFile.name}</Typography>} */}
+                
+
               </Grid>
 
               {/* Optional Engagement Letter */}
@@ -2663,7 +2695,9 @@ function Subject() {
                     onChange={onEngagementLetterFileChange}
                   />
                 </Button>
-                {engagementLetterFile && <Typography variant="caption" sx={{ ml: 1 }}>{engagementLetterFile.name}</Typography>}
+
+
+
               </Grid>
 
               {/* Form Type Dropdown */}
@@ -2688,7 +2722,7 @@ function Subject() {
               </Grid>
 
               {/* Fast App Button */}
-              <Grid item>
+              {/* <Grid item>
                 <Button
 
                   variant="outlined"
@@ -2697,7 +2731,7 @@ function Subject() {
                 >
                   Fast App
                 </Button>
-              </Grid>
+              </Grid> */}
 
               {/* Generate PDF Button */}
               <Grid item>
@@ -2727,7 +2761,7 @@ function Subject() {
                 <Typography variant="body2" noWrap>
                   Selected File: <strong>{selectedFile.name}</strong>
                 </Typography>
-
+                
                 {/* LOADING AREA */}
                 {loading && (
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -2766,6 +2800,25 @@ function Subject() {
 
               </Stack>
             )}
+            {contractFile && (
+                  <Stack direction="row" alignItems="center" spacing={1}>
+                    <Typography variant="caption">Contract Copy: {contractFile.name}</Typography>
+                    <Button size="small" variant="text" onClick={() => setIsContractCompareOpen(true)}>Review</Button>
+                  </Stack>
+                )}
+                {htmlFile && (
+                  <Stack direction="row" alignItems="center" spacing={1}>
+                    <Typography variant="caption">HTML File: {htmlFile.name}</Typography>
+                    <Button size="small" variant="text" onClick={() => setIsComparisonDialogOpen(true)}>Review</Button>
+                  </Stack>
+                )}
+                {engagementLetterFile && (
+                  <Stack direction="row" alignItems="center" spacing={1}>
+                    <Typography variant="caption">Engagement Letter: {engagementLetterFile.name}</Typography>
+                    {/* Add onClick handler for engagement letter review if needed */}
+                    <Button size="small" variant="text" onClick={() => { /* TODO: Implement engagement letter review */ }}>Review</Button>
+                  </Stack>)}
+
           </Paper>
           <Paper elevation={2} sx={{ p: 5, top: 0, zIndex: 1100, height: 'fit-content', backgroundColor: activeTheme.palette.background.paper }} >
 
@@ -2859,7 +2912,7 @@ function Subject() {
                       {/* {!data['FHA Case No.'] && !data['ANSI'] && !data['Exposure comment'] && !data['Prior service comment'] && !isUnpaidOkLender && ( */}
                       {(!data['FHA Case No.'] || !data['ANSI'] || !data['Exposure comment'] || !data['Prior service comment'] || !isUnpaidOkLender) && (
                         <Box sx={{ display: 'flex', alignItems: 'center', p: 1, borderRadius: 1, bgcolor: 'error.light' }}>
-                           <ErrorOutlineIcon color="error" sx={{ mr: 1 }} />
+                          <ErrorOutlineIcon color="error" sx={{ mr: 1 }} />
                           <Typography variant="body2" sx={{ fontWeight: 'bold', color: 'error.dark' }}>
                             Plz check the report
                           </Typography>
@@ -2976,3 +3029,4 @@ function Subject() {
 }
 
 export default Subject;
+
