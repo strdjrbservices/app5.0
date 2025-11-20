@@ -2778,7 +2778,7 @@ function Subject() {
         visibleSectionIds = baseSections.filter(id => !['rent-schedule-section', 'improvements-section', 'site-section', 'rent-schedule-reconciliation-section', 'pud-info-section', 'market-conditions-section'].includes(id));
         break;
       case '1007':
-        visibleSectionIds = baseSections.filter(id => !['project-site-section', 'rent-schedule-reconciliation-section', 'prior-sale-history-section', 'project-info-section', 'project-analysis-section', 'unit-descriptions-section'].includes(id));
+        visibleSectionIds = baseSections.filter(id => !['project-site-section', 'prior-sale-history-section', 'project-info-section', 'project-analysis-section', 'unit-descriptions-section', 'pud-info-section', 'market-conditions-section'].includes(id));
         break;
       default:
 
