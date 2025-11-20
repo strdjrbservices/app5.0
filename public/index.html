@@ -37,4 +37,14 @@
       To create a production bundle, use `npm run build` or `yarn build`.
     -->
   </body>
+  <script>
+    window.addEventListener('beforeunload', (event) => {
+      // This is the modern way to show a confirmation dialog.
+      // The custom message is no longer supported in most browsers for security reasons.
+      // The browser will show a generic message.
+      // To conditionally show the prompt, you can wrap this line in an `if` statement.
+      // For example: if (hasUnsavedChanges()) { event.preventDefault(); }
+      event.preventDefault();
+    });
+  </script>
 </html>

@@ -15,6 +15,7 @@ import UnpaidOkCheck, { UNPAID_OK_PROMPT } from './UnpaidOkCheck';
 import ClientRequirementCheck, { CLIENT_REQUIREMENT_PROMPT } from './ClientRequirementCheck';
 import EscalationCheck, { ESCALATION_CHECK_PROMPT } from './EscalationCheck';
 import FhaCheck, { FHA_REQUIREMENTS_PROMPT } from './FhaCheck';
+import ADUCheck,{ADU_REQUIREMENTS_PROMPT} from './ADUCheck';
 import { lightTheme, darkTheme } from '../../theme';
 import uploadSoundFile from '../../Assets/upload.mp3';
 import successSoundFile from '../../Assets/success.mp3';
@@ -943,6 +944,9 @@ function Subject() {
   const [fhaLoading, setFhaLoading] = useState(false);
   const [fhaResponse, setFhaResponse] = useState(null);
   const [fhaError, setFhaError] = useState('');
+  const [ADULoading, setADULoading] = useState(false);
+  const [ADUResponse, setADUResponse] = useState(null);
+  const [ADUError, setADUError] = useState('');
   const [escalationLoading, setEscalationLoading] = useState(false);
   const [escalationResponse, setEscalationResponse] = useState(null);
   const [escalationError, setEscalationError] = useState('');
@@ -962,7 +966,7 @@ function Subject() {
   const [contractCompareLoading, setContractCompareLoading] = useState(false);
   const [contractCompareResult, setContractCompareResult] = useState(null);
   const [contractCompareError, setContractCompareError] = useState('');
-  
+
   const [isEngagementLetterDialogOpen, setIsEngagementLetterDialogOpen] = useState(false);
   const [engagementLetterCompareLoading, setEngagementLetterCompareLoading] = useState(false);
   const [engagementLetterCompareResult, setEngagementLetterCompareResult] = useState(null);
@@ -1259,6 +1263,7 @@ function Subject() {
     // 'Prior service comment',
     // 'ANSI',
     // 'From Type',
+    'ADU File Check',
     'Property Address',
     'City',
     'County',
@@ -1799,6 +1804,7 @@ function Subject() {
     setUnpaidOkResponse(null);
     setClientReqResponse(null);
     setFhaResponse(null);
+    setADUResponse(null);
     setActiveSection(null);
     setModalContent(null);
     setContractExtracted(false);
@@ -2068,7 +2074,7 @@ function Subject() {
     setUnpaidOkResponse(null);
     setClientReqResponse(null);
     setFhaResponse(null);
-
+    setADUResponse(null);
 
     const formData = new FormData();
     formData.append('file', selectedFile);
@@ -2147,7 +2153,9 @@ function Subject() {
     setFhaError('');
     setFhaResponse(null);
 
-
+    setADULoading(true);
+    setADUError('');
+    setADUResponse(null);
     setModalContent({
       title: 'State Requirement Check',
       Component: StateRequirementCheck,
@@ -2351,6 +2359,7 @@ function Subject() {
     const formData = new FormData();
     formData.append('file', selectedFile);
     formData.append('form_type', selectedFormType);
+    // formData.append('comment', ADU_REQUIREMENTS_PROMPT);
     formData.append('comment', FHA_REQUIREMENTS_PROMPT);
 
     try {
@@ -2385,6 +2394,69 @@ function Subject() {
     }
   };
 
+  const handleADUCheck = async (forceReload = false) => {
+    if (!selectedFile) {
+      setADUError('Please select a PDF file first.');
+      return;
+    }
+
+    if (ADUResponse && !forceReload) {
+      setModalContent({
+        title: 'ADU File Check',
+        Component: ADUCheck,
+        props: { loading: false, response: ADUResponse, error: ADUError }
+      });
+      setIsCheckModalOpen(true);
+      return;
+    }
+
+    setADULoading(true);
+    setADUError('');
+    setADUResponse(null);
+
+    setModalContent({
+      title: 'ADU File Check',
+      Component: ADUCheck,
+      props: { loading: true }
+    });
+    setIsCheckModalOpen(true);
+
+    const formData = new FormData();
+    formData.append('file', selectedFile);
+    formData.append('form_type', selectedFormType);
+    formData.append('comment', ADU_REQUIREMENTS_PROMPT);
+
+    try {
+      const res = await fetch('https://strdjrbservices1.pythonanywhere.com/api/extract/', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const result = await res.json();
+      if (!res.ok) {
+        throw new Error(result.detail || `HTTP error! status: ${res.status}`);
+      }
+      const responseData = result.fields || result;
+      setADUResponse(responseData);
+      setModalContent({
+        title: 'ADU File Check',
+        Component: ADUCheck,
+        props: { loading: false, response: responseData, error: '' }
+      });
+    } catch (e) {
+      const errorMsg = e.message || 'An unexpected error occurred.';
+      setADUError(errorMsg);
+      setModalContent({
+        title: 'ADU File Check',
+        Component: ADUCheck,
+        props: { loading: false, response: null, error: errorMsg }
+      });
+    } finally {
+      setADULoading(false);
+      if (timerRef.current) clearInterval(timerRef.current);
+      setLoading(false);
+    }
+  };
   const handleEscalationCheck = async (forceReload = false) => {
     if (!selectedFile) {
       setEscalationError('Please select a PDF file first.');
@@ -2536,11 +2608,26 @@ function Subject() {
     }
   }, [notification]);
 
+  useEffect(() => {
+    const handleBeforeUnload = (event) => {
+      // Show confirmation message if there is data or a file selected
+      if (Object.keys(data).length > 0 || selectedFile) {
+        event.preventDefault();
+        // Required for Chrome
+        event.returnValue = '';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [data, selectedFile]);
+
   const handleGeneratePdf = () => {
     if (Object.keys(data).length === 0) {
       setNotification({ open: true, message: 'No data to generate PDF.', severity: 'warning' });
-
-
     }
 
     setIsGeneratingPdf(true);
@@ -2703,7 +2790,7 @@ function Subject() {
   };
 
   const renderForm = () => {
-    const props = { data, allData: data, extractionAttempted, handleDataChange, editingField, setEditingField, isEditable, highlightedSubjectFields, highlightedContractFields, highlightedSiteFields, subjectFields, contractFields, neighborhoodFields, siteFields, improvementsFields, salesGridRows, comparableSales, salesComparisonAdditionalInfoFields, salesHistoryFields, priorSaleHistoryFields, reconciliationFields, costApproachFields, incomeApproachFields, pudInformationFields, marketConditionsFields, marketConditionsRows, condoCoopProjectsRows, condoForeclosureFields, appraiserFields, supplementalAddendumFields, uniformResidentialAppraisalReportFields, appraisalAndReportIdentificationFields, projectSiteFields, projectInfoFields, projectAnalysisFields, unitDescriptionsFields, imageAnalysisFields, dataConsistencyFields, comparableRents, RentSchedulesFIELDS2, rentScheduleReconciliationFields, formType: selectedFormType, comparisonData, getComparisonStyle, SalesComparisonSection, EditableField, infoOfSalesFields, loading, stateRequirementFields, handleStateRequirementCheck, stateReqLoading, stateReqResponse, stateReqError, handleUnpaidOkCheck, unpaidOkLoading, unpaidOkResponse, unpaidOkError, handleClientRequirementCheck, clientReqLoading, clientReqResponse, clientReqError, handleFhaCheck, fhaLoading, fhaResponse, fhaError, handleEscalationCheck, escalationLoading, escalationResponse, escalationError, onDataChange: handleDataChange, handleExtract, manualValidations, handleManualValidation };
+    const props = { data, allData: data, extractionAttempted, handleDataChange, editingField, setEditingField, isEditable, highlightedSubjectFields, highlightedContractFields, highlightedSiteFields, subjectFields, contractFields, neighborhoodFields, siteFields, improvementsFields, salesGridRows, comparableSales, salesComparisonAdditionalInfoFields, salesHistoryFields, priorSaleHistoryFields, reconciliationFields, costApproachFields, incomeApproachFields, pudInformationFields, marketConditionsFields, marketConditionsRows, condoCoopProjectsRows, condoForeclosureFields, appraiserFields, supplementalAddendumFields, uniformResidentialAppraisalReportFields, appraisalAndReportIdentificationFields, projectSiteFields, projectInfoFields, projectAnalysisFields, unitDescriptionsFields, imageAnalysisFields, dataConsistencyFields, comparableRents, RentSchedulesFIELDS2, rentScheduleReconciliationFields, formType: selectedFormType, comparisonData, getComparisonStyle, SalesComparisonSection, EditableField, infoOfSalesFields, loading, stateRequirementFields, handleStateRequirementCheck, stateReqLoading, stateReqResponse, stateReqError, handleUnpaidOkCheck, unpaidOkLoading, unpaidOkResponse, unpaidOkError, handleClientRequirementCheck, clientReqLoading, clientReqResponse, clientReqError, handleFhaCheck,handleADUCheck, fhaLoading, fhaResponse, fhaError, ADULoading, handleEscalationCheck, escalationLoading, escalationResponse, escalationError, onDataChange: handleDataChange, handleExtract, manualValidations, handleManualValidation };
 
     let formComponent;
     switch (selectedFormType) {
@@ -2774,7 +2861,7 @@ function Subject() {
               alt="logo"
               sx={{ height: { xs: 80, md: 100 }, width: 'auto' }}
             />
-            <Typography variant="h3" component="h1" className="app-title" sx={{ fontFamily:'BBH Sans Hegarty',fontWeight: 'bold', fontSize: { xs: '2rem', md: '3rem' } }}>
+            <Typography variant="h3" component="h1" className="app-title" sx={{ fontFamily: 'BBH Sans Hegarty', fontWeight: 'bold', fontSize: { xs: '2rem', md: '3rem' } }}>
               FULL FILE REVIEW
             </Typography>
           </Box>
@@ -2829,7 +2916,7 @@ function Subject() {
                   />
                 </Button>
 
-                
+
 
               </Grid>
 
@@ -2846,7 +2933,7 @@ function Subject() {
                   />
                 </Button>
                 {/* {contractFile && <Typography variant="caption" sx={{ ml: 1 }}>{contractFile.name}</Typography>} */}
-                
+
 
               </Grid>
 
@@ -2928,7 +3015,7 @@ function Subject() {
                 <Typography variant="body2" noWrap>
                   Selected File: <strong>{selectedFile.name}</strong>
                 </Typography>
-                
+
                 {/* LOADING AREA */}
                 {loading && (
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -2968,23 +3055,23 @@ function Subject() {
               </Stack>
             )}
             {contractFile && (
-                  <Stack direction="row" alignItems="center" spacing={1}>
-                    <Typography variant="caption">Contract Copy: {contractFile.name}</Typography>
-                    <Button size="small" variant="text" onClick={() => setIsContractCompareOpen(true)}>Review</Button>
-                  </Stack>
-                )}
-                {htmlFile && (
-                  <Stack direction="row" alignItems="center" spacing={1}>
-                    <Typography variant="caption">HTML File: {htmlFile.name}</Typography>
-                    <Button size="small" variant="text" onClick={() => setIsComparisonDialogOpen(true)}>Review</Button>
-                  </Stack>
-                )}
-                {engagementLetterFile && (
-                  <Stack direction="row" alignItems="center" spacing={1}>
-                    <Typography variant="caption">Engagement Letter: {engagementLetterFile.name}</Typography>
-                    {/* Add onClick handler for engagement letter review if needed */}
-                    <Button size="small" variant="text" onClick={() => { /* TODO: Implement engagement letter review */ }}>Review</Button>
-                  </Stack>)}
+              <Stack direction="row" alignItems="center" spacing={1}>
+                <Typography variant="caption">Contract Copy: {contractFile.name}</Typography>
+                <Button size="small" variant="text" onClick={() => setIsContractCompareOpen(true)}>Review</Button>
+              </Stack>
+            )}
+            {htmlFile && (
+              <Stack direction="row" alignItems="center" spacing={1}>
+                <Typography variant="caption">HTML File: {htmlFile.name}</Typography>
+                <Button size="small" variant="text" onClick={() => setIsComparisonDialogOpen(true)}>Review</Button>
+              </Stack>
+            )}
+            {engagementLetterFile && (
+              <Stack direction="row" alignItems="center" spacing={1}>
+                <Typography variant="caption">Engagement Letter: {engagementLetterFile.name}</Typography>
+                {/* Add onClick handler for engagement letter review if needed */}
+                <Button size="small" variant="text" onClick={() => { /* TODO: Implement engagement letter review */ }}>Review</Button>
+              </Stack>)}
 
           </Paper>
           <Paper elevation={2} sx={{ p: 5, top: 0, zIndex: 1100, height: 'fit-content', backgroundColor: activeTheme.palette.background.paper }} >
@@ -3040,6 +3127,18 @@ function Subject() {
                           </Typography>
                           <Tooltip title="Check FHA Requirements">
                             <IconButton onClick={handleFhaCheck} size="small" sx={{ ml: 0.5 }}>
+                              <Info fontSize="small" color="info" />
+                            </IconButton>
+                          </Tooltip>
+                        </Box>
+                      )}
+                      {data['ADU File Check'] && (
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          <Typography variant="body2" noWrap sx={{ fontWeight: 'bold', color: 'secondary.main' }}>
+                            ADU File Check: {data['ADU File Check']}
+                          </Typography>
+                          <Tooltip title="Check 'ADU  Requirements">
+                            <IconButton onClick={handleADUCheck} size="small" sx={{ ml: 0.5 }}>
                               <Info fontSize="small" color="info" />
                             </IconButton>
                           </Tooltip>
