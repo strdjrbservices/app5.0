@@ -13,6 +13,7 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  Tooltip,
 } from '@mui/material';
 import uploadSoundFile from '../../Assets/upload.mp3';
 import successSoundFile from '../../Assets/success.mp3';
@@ -142,7 +143,9 @@ const HtmlExtractor = () => {
       <form onSubmit={handleSubmit}>
         <Grid container spacing={3} sx={{ mb: 3 }}>
           <Grid item xs={12}>
-            <Button variant="outlined" component="label" fullWidth>Upload HTML File<input type="file" hidden accept=".html" onChange={handleFileChange} /></Button>
+            <Tooltip title="Click to upload the HTML file">
+              <Button variant="outlined" component="label" fullWidth>Upload HTML File<input type="file" hidden accept=".html" onChange={handleFileChange} /></Button>
+            </Tooltip>
             {htmlFile && <Typography variant="body2" noWrap>Selected: {htmlFile.name}</Typography>}
           </Grid>
         </Grid>
@@ -150,7 +153,7 @@ const HtmlExtractor = () => {
           <Button type="submit" variant="contained" color="primary" disabled={loading || !htmlFile} fullWidth>
             {loading ? <CircularProgress size={24} /> : 'Extract from HTML'}
           </Button>
-          {loading && <Typography variant="body2" sx={{ mt: 1, textAlign: 'center' }}>Elapsed Time: {timer}s</Typography>}
+          {loading && <Typography variant="body2" sx={{ mt: 1, textAlign: 'center' }}>Elapsed Time: {Math.floor(timer / 60)}m {timer % 60}s</Typography>}
         </Box>
       </form>
       {error && <Alert severity="error" sx={{ mt: 3 }}>{error}</Alert>}

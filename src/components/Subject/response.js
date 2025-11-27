@@ -287,7 +287,7 @@ const ResponsePage = () => {
           </Button>
           {loading && (
             <Typography variant="body2" sx={{ mt: 1, textAlign: 'center' }}>
-              Elapsed Time: {timer}s
+              Elapsed Time: {Math.floor(timer / 60)}m {timer % 60}s
             </Typography>
           )}
         </Box>

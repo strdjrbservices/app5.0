@@ -13,6 +13,7 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  Tooltip,
 } from '@mui/material';
 import uploadSoundFile from '../../Assets/upload.mp3';
 import successSoundFile from '../../Assets/success.mp3';
@@ -168,11 +169,15 @@ const ConfirmationChecklist = () => {
       <form onSubmit={handleSubmit}>
         <Grid container spacing={3} sx={{ mb: 3 }}>
           <Grid item xs={12} md={6}>
-            <Button variant="outlined" component="label" fullWidth>Upload Old PDF<input type="file" hidden accept=".pdf" onChange={handleFileChange(setOldPdfFile)} /></Button>
+            <Tooltip title="Click to upload the old PDF file">
+              <Button variant="outlined" component="label" fullWidth>Upload Old PDF<input type="file" hidden accept=".pdf" onChange={handleFileChange(setOldPdfFile)} /></Button>
+            </Tooltip>
             {oldPdfFile && <Typography variant="body2" noWrap>Selected: {oldPdfFile.name}</Typography>}
           </Grid>
           <Grid item xs={12} md={6}>
-            <Button variant="outlined" component="label" fullWidth>Upload New PDF<input type="file" hidden accept=".pdf" onChange={handleFileChange(setNewPdfFile)} /></Button>
+            <Tooltip title="Click to upload the new PDF file">
+              <Button variant="outlined" component="label" fullWidth>Upload New PDF<input type="file" hidden accept=".pdf" onChange={handleFileChange(setNewPdfFile)} /></Button>
+            </Tooltip>
             {newPdfFile && <Typography variant="body2" noWrap>Selected: {newPdfFile.name}</Typography>}
           </Grid>
         </Grid>
@@ -180,7 +185,7 @@ const ConfirmationChecklist = () => {
           <Button type="submit" variant="contained" color="primary" disabled={loading || !oldPdfFile || !newPdfFile} fullWidth>
             {loading ? <CircularProgress size={24} /> : 'Run Confirmation Check'}
           </Button>
-          {loading && <Typography variant="body2" sx={{ mt: 1, textAlign: 'center' }}>Elapsed Time: {timer}s</Typography>}
+          {loading && <Typography variant="body2" sx={{ mt: 1, textAlign: 'center' }}>Elapsed Time: {Math.floor(timer / 60)}m {timer % 60}s</Typography>}
         </Box>
       </form>
       {error && <Alert severity="error" sx={{ mt: 3 }}>{error}</Alert>}

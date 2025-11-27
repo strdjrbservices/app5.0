@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Box,
   Button,
@@ -14,6 +14,7 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  Tooltip,
 } from '@mui/material';
 import uploadSoundFile from '../../Assets/upload.mp3';
 import successSoundFile from '../../Assets/success.mp3';
@@ -74,6 +75,8 @@ const CustomQuery = () => {
   const [response, setResponse] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [timer, setTimer] = useState(0);
+  const timerRef = useRef(null);
 
   useEffect(() => {
     if (error) {
@@ -86,6 +89,12 @@ const CustomQuery = () => {
       playSound('success');
     }
   }, [response]);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, []);
 
   const handleFileChange = (event) => {
     setFile(event.target.files[0]);
@@ -111,6 +120,9 @@ const CustomQuery = () => {
     setLoading(true);
     setError('');
     setResponse(null);
+    setTimer(0);
+    if (timerRef.current) clearInterval(timerRef.current);
+    timerRef.current = setInterval(() => setTimer(prev => prev + 1), 1000);
 
     const formData = new FormData();
     formData.append('file', file);
@@ -142,6 +154,7 @@ const CustomQuery = () => {
       console.error('Extraction failed:', e);
     } finally {
       setLoading(false);
+      if (timerRef.current) clearInterval(timerRef.current);
     }
   };
 
@@ -242,18 +255,20 @@ const CustomQuery = () => {
       </Typography>
       <form onSubmit={handleSubmit}>
         <Stack spacing={3}>
-          <Button
-            variant="contained"
-            component="label"
-          >
-            Upload Revised / Updated PDF
-            <input
-              type="file"
-              hidden
-              accept=".pdf"
-              onChange={handleFileChange}
-            />
-          </Button>
+          <Tooltip title="Click to upload the revised/updated PDF file">
+            <Button
+              variant="contained"
+              component="label"
+            >
+              Upload Revised / Updated PDF
+              <input
+                type="file"
+                hidden
+                accept=".pdf"
+                onChange={handleFileChange}
+              />
+            </Button>
+          </Tooltip>
           {file && <Typography variant="body2">Selected: {file.name}</Typography>}
 
           {/* <FormControl fullWidth>
@@ -291,6 +306,9 @@ const CustomQuery = () => {
             >
               Extract Information
             </Button>
+            {loading && (
+              <Typography variant="body2" sx={{ mt: 1, textAlign: 'center' }}>Elapsed Time: {Math.floor(timer / 60)}m {timer % 60}s</Typography>
+            )}
             {loading && (
               <CircularProgress
                 size={24}

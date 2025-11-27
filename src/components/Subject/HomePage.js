@@ -22,6 +22,9 @@ const HomePage = () => {
           <Button component={Link} to="/query" variant="contained" color="secondary" size="large" target="_blank" rel="noopener noreferrer">
             Custom Query
           </Button>
+          <Button component={Link} to="/1004D" variant="contained" color="success" size="large" target="_blank" rel="noopener noreferrer">
+            1004D
+          </Button>
          
           {/* <Button component={Link} to="/html-extractor" variant="contained" color="secondary" size="large" target="_blank" rel="noopener noreferrer">
             HTML Extractor

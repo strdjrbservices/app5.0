@@ -11,16 +11,19 @@ export const checkContractFieldsMandatory = (field, text, data, fieldPath) => {
     return { isMatch: true };
 };
 
-export const checkContractAnalysisConsistency = (field, data) => {
-    if (!data.CONTRACT) return null;
+export const checkContractAnalysisConsistency = (field, text, data) => {
+    if (!data || !data.CONTRACT) return null;
 
     const analysisField = "I did did not analyze the contract for sale for the subject purchase transaction. Explain the results of the analysis of the contract for sale or why the analysis was not performed.";
     const analysisValue = String(data.CONTRACT[analysisField] || '').trim().toLowerCase();
 
     const fieldsToCheck = [
-        { name: "Contract Price $", required: analysisValue.includes('did') },
-        { name: "Date of Contract", required: analysisValue.includes('did') },
-        { name: "Data Source(s) (Contract)", required: analysisValue.includes('did') }
+        { name: "Contract Price $", required: analysisValue.startsWith('did') },
+        { name: "Date of Contract", required: analysisValue.startsWith('did') },
+        { name: "Is property seller owner of public record?", required: analysisValue.startsWith('did') },
+        { name: "Data Source(s)", required: analysisValue.startsWith('did') },
+        { name: "Is there any financial assistance (loan charges, sale concessions, gift or downpayment assistance, etc.) to be paid by any party on behalf of the borrower?", required: analysisValue.startsWith('did') },
+        { name: "If Yes, report the total dollar amount and describe the items to be paid", required: analysisValue.startsWith('did') && String(data.CONTRACT["Is there any financial assistance (loan charges, sale concessions, gift or downpayment assistance, etc.) to be paid by any party on behalf of the borrower?"] || '').trim().toLowerCase() === 'yes' }
 
     ];
 

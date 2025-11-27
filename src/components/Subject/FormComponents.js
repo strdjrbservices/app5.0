@@ -13,7 +13,14 @@ import { checkResearchHistory, checkSubjectPriorSales, checkComparablePriorSales
 import { checkStateRequirements } from './stateValidation';
 import { checkIncomeApproachFieldsNotBlank } from './incomeApproachValidation';
 import { checkPudInformationFieldsNotBlank } from './pudInformationValidation';
-import { checkMarketConditionsFieldsNotBlank } from './marketConditionsValidation';import { Tooltip, Box, LinearProgress, Paper, Typography, IconButton } from '@mui/material';
+import { checkMarketConditionsFieldsNotBlank } from './marketConditionsValidation';
+import { checkProjectInfoFieldsNotBlank } from './form1073Validation';
+import { checkProjectAnalysisFieldsNotBlank } from './projectAnalysisValidation';
+import { checkUnitDescriptionsFieldsNotBlank } from './unitDescriptionsValidation';
+import { checkProjectSiteFieldsNotBlank } from './projectSiteValidation';
+import { checkPriorSaleHistoryFieldsNotBlank } from './priorSaleHistoryValidation';
+import { checkInfoOfSalesFieldsNotBlank } from './infoOfSalesValidation';
+import { Tooltip, Box, LinearProgress, Paper, Typography, IconButton } from '@mui/material';
 import ThumbUpIcon from '@mui/icons-material/ThumbUp';
 
 
@@ -183,14 +190,22 @@ export const EditableField = ({ fieldPath, value, onDataChange, editingField, se
 
     // Contract Validations
     "I did did not analyze the contract for sale for the subject purchase transaction. Explain the results of the analysis of the contract for sale or why the analysis was not performed.": [checkContractFieldsMandatory, checkContractAnalysisConsistency],
-    "Contract Price $": [checkContractFieldsMandatory, checkContractAnalysisConsistency],
-    "Date of Contract": [checkContractFieldsMandatory, checkContractAnalysisConsistency], "Is property seller owner of public record?": [(field, text, data) => checkYesNoOnly(field, text, data, {
+    "Contract Price $": [checkContractFieldsMandatory, checkContractAnalysisConsistency], 
+    "Date of Contract": [checkContractFieldsMandatory, checkContractAnalysisConsistency], 
+    "Is property seller owner of public record?": [
+        checkContractAnalysisConsistency,
+        (field, text, data) => checkYesNoOnly(field, text, data, {
         name: 'Is property seller owner of public record?'
-    })],
-    "Data Source(s) (Contract)": [checkContractFieldsMandatory, checkContractAnalysisConsistency], "Is there any financial assistance (loan charges, sale concessions, gift or downpayment assistance, etc.) to be paid by any party on behalf of the borrower?": [(field, text, data) => checkYesNoOnly(field, text, data, {
+    })], 
+    // "Data Source(s)": [checkContractAnalysisConsistency],
+    "Data Source(s) (Contract)": [checkContractFieldsMandatory, checkContractAnalysisConsistency], 
+    "Is there any financial assistance (loan charges, sale concessions, gift or downpayment assistance, etc.) to be paid by any party on behalf of the borrower?": [
+        checkContractAnalysisConsistency,
+        (field, text, data) => checkYesNoOnly(field, text, data, {
         name: 'Is there any financial assistance (loan charges, sale concessions, gift or downpayment assistance, etc.) to be paid by any party on behalf of the borrower?'
-    }), checkFinancialAssistanceInconsistency],
-    "If Yes, report the total dollar amount and describe the items to be paid": [checkFinancialAssistanceInconsistency],
+    }), 
+    checkFinancialAssistanceInconsistency],
+    "If Yes, report the total dollar amount and describe the items to be paid": [checkFinancialAssistanceInconsistency, checkContractAnalysisConsistency],
   };
 
   validationRegistry['final value'] = [checkFinalValueConsistency, checkFinalValueBracketing];
@@ -282,6 +297,113 @@ export const EditableField = ({ fieldPath, value, onDataChange, editingField, se
     validationRegistry[field].push(checkMarketConditionsFieldsNotBlank);
   });
 
+  const projectInfoFieldsToValidate = [
+    "Data source(s) for project information", "Project Description", "# of Stories",
+    "# of Elevators", "Existing/Proposed/Under Construction", "Year Built",
+    "Effective Age", "Exterior Walls",
+    "Roof Surface", "Total # Parking", "Ratio (spaces/units)", "Type", "Guest Parking", "# of Units", "# of Units Completed",
+    "# of Units For Sale", "# of Units Sold", "# of Units Rented", "# of Owner Occupied Units",
+    "# of Phases", "# of Planned Phases",
+    "Project Primary Occupancy", "Is the developer/builder in control of the Homeowners' Association (HOA)?",
+    "Management Group", "Does any single entity (the same individual, investor group, corporation, etc.) own more than 10% of the total units in the project?"
+    , "Was the project created by the conversion of existing building(s) into a condominium?",
+    "If Yes,describe the original use and date of conversion",
+    "Are the units, common elements, and recreation facilities complete (including any planned rehabilitation for a condominium conversion)?", "If No, describe",
+    "Is there any commercial space in the project?",
+    "If Yes, describe and indicate the overall percentage of the commercial space.", "Describe the condition of the project and quality of construction.",
+    "Describe the common elements and recreational facilities.", "Are any common elements leased to or by the Homeowners' Association?",
+    "If Yes, describe the rental terms and options.", "Is the project subject to a ground rent?",
+    "If Yes, $ per year (describe terms and conditions)",
+    "Are the parking facilities adequate for the project size and type?", "If No, describe and comment on the effect on value and marketability."
+  ];
+  projectInfoFieldsToValidate.forEach(field => {
+    if (!validationRegistry[field]) validationRegistry[field] = [];
+    validationRegistry[field].push(checkProjectInfoFieldsNotBlank);
+  });
+
+  const projectAnalysisFieldsToValidate = [
+    "I did did not analyze the condominium project budget for the current year. Explain the results of the analysis of the budget (adequacy of fees, reserves, etc.), or why the analysis was not performed.",
+    "Are there any other fees (other than regular HOA charges) for the use of the project facilities?",
+    "If Yes, report the charges and describe.",
+    "Compared to other competitive projects of similar quality and design, the subject unit charge appears",
+    "If High or Low, describe",
+    "Are there any special or unusual characteristics of the project (based on the condominium documents, HOA meetings, or other information) known to the appraiser?",
+    "If Yes, describe and explain the effect on value and marketability."
+  ];
+  projectAnalysisFieldsToValidate.forEach(field => {
+    if (!validationRegistry[field]) validationRegistry[field] = [];
+    validationRegistry[field].push(checkProjectAnalysisFieldsNotBlank);
+  });
+
+  const unitDescriptionsFieldsToValidate = [
+    "Unit Charge$",
+    "per month X 12 = $",
+    "per year",
+    "Annual assessment charge per year per square feet of gross living area = $",
+    "Utilities included in the unit monthly assessment [None/Heat/Air/Conditioning/Electricity/Gas/Water/Sewer/Cable/Other (describe)]",
+    "Floor #",
+    "# of Levels",
+    "Heating Type/Fuel",
+    "Central AC/Individual AC/Other (describe)",
+    "Fireplace(s) #/Woodstove(s) #/Deck/Patio/Porch/Balcony/Other",
+    "Refrigerator/Range/Oven/Disp Microwave/Dishwasher/Washer/Dryer",
+    "Floors", "Walls", "Trim/Finish", "Bath Wainscot", "Doors",
+    "None/Garage/Covered/Open", "Assigned/Owned", "# of Cars", "Parking Space #",
+    "Finished area above grade contains:",
+    "Are the heating and cooling for the individual units separately metered?",
+    "Additional features (special energy efficient items, etc.)",
+    "Describe the condition of the property (including needed repairs, deterioration, renovations, remodeling, etc.)",
+  ];
+
+  unitDescriptionsFieldsToValidate.forEach(field => {
+    if (!validationRegistry[field]) {
+      validationRegistry[field] = [];
+    }
+    validationRegistry[field].push(checkUnitDescriptionsFieldsNotBlank);
+  });
+
+  const projectSiteFieldsToValidate = [
+    "Topography", "Size", "Density", "View", "Specific Zoning Classification", "Zoning Description",
+    "Zoning Compliance", "Is the highest and best use of subject property as improved (or as proposed per plans and specifications) the present use?",
+    "Electricity", "Gas", "Water", "Sanitary Sewer", "Street", "Alley", "FEMA Special Flood Hazard Area",
+    "FEMA Flood Zone", "FEMA Map #", "FEMA Map Date", "Are the utilities and off-site improvements typical for the market area? If No, describe",
+    "Are there any adverse site conditions or external factors (easements, encroachments, environmental conditions, land uses, etc.)? If Yes, describe",
+  ];
+  projectSiteFieldsToValidate.forEach(field => {
+    if (!validationRegistry[field]) {
+      validationRegistry[field] = [];
+    }
+    validationRegistry[field].push(checkProjectSiteFieldsNotBlank);
+  });
+
+  const priorSaleHistoryFieldsToValidate = [
+    "Prior Sale History: I did did not research the sale or transfer history of the subject property and comparable sales",
+    "Prior Sale History: My research did did not reveal any prior sales or transfers of the subject property for the three years prior to the effective date of this appraisal",
+    "Prior Sale History: Data source(s) for subject",
+    "Prior Sale History: My research did did not reveal any prior sales or transfers of the comparable sales for the year prior to the date of sale of the comparable sale",
+    "Prior Sale History: Data source(s) for comparables",
+    "Prior Sale History: Report the results of the research and analysis of the prior sale or transfer history of the subject property and comparable sales",
+    "Prior Sale History: Date of Prior Sale/Transfer",
+    "Prior Sale History: Price of Prior Sale/Transfer",
+    "Prior Sale History: Data Source(s) for prior sale/transfer",
+    "Prior Sale History: Effective Date of Data Source(s)",
+    "Prior Sale History: Analysis of prior sale or transfer history of the subject property and comparable sales"
+  ];
+  priorSaleHistoryFieldsToValidate.forEach(field => {
+    if (!validationRegistry[field]) validationRegistry[field] = [];
+    validationRegistry[field].push(checkPriorSaleHistoryFieldsNotBlank);
+  });
+
+  const infoOfSalesFieldsToValidate = [
+    "There are ____ comparable properties currently offered for sale in the subject neighborhood ranging in price from$ ___to $___",
+    "There are ___comparable sales in the subject neighborhoodwithin the past twelvemonths ranging in sale price from$___ to $____"
+  ];
+  infoOfSalesFieldsToValidate.forEach(field => {
+    if (!validationRegistry[field]) {
+      validationRegistry[field] = [];
+    }
+    validationRegistry[field].push(checkInfoOfSalesFieldsNotBlank);
+  });
   const getValidationInfo = (field, text, data, fieldPath, saleName, manualValidations) => {
     const validationFns = validationRegistry[field] || [];
     let validationResult = null;

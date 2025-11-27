@@ -17,6 +17,8 @@ export const checkSubjectFieldsNotBlank = (field, text) => {
         'Property Address',
         'County',
         'Borrower',
+        'City',
+        'Zip Code',
         'Owner of Public Record',
         'Legal Description',
         "Assessor's Parcel #",
@@ -26,7 +28,8 @@ export const checkSubjectFieldsNotBlank = (field, text) => {
         'Occupant',
         'Property Rights Appraised',
         'Lender/Client',
-        'Address (Lender/Client)'
+        'Address (Lender/Client)',
+        'Report data source(s) used, offering price(s), and date(s)'
     ];
     return checkNotBlank(field, text, fieldsToCheck.find(f => f === field));
 };

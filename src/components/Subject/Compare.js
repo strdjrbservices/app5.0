@@ -17,6 +17,7 @@ import {
   TableRow,
   Chip,
   ToggleButton,
+  Tooltip,
   ToggleButtonGroup,
 } from '@mui/material';
 import { LoadingButton } from '@mui/lab';
@@ -557,24 +558,30 @@ const Compare = () => {
         <Typography variant="h6" gutterBottom>Upload Files</Typography>
         <Grid container spacing={3}>
           <Grid item xs={12} md={4}>
-            <Button variant="outlined" component="label" fullWidth>
-              Upload Old/Original PDF
-              <input type="file" hidden accept=".pdf,application/pdf" onChange={handleOldPdfFileChange} />
-            </Button>
+            <Tooltip title="Click to upload the old/original PDF file">
+              <Button variant="outlined" component="label" fullWidth>
+                Upload Old/Original PDF
+                <input type="file" hidden accept=".pdf,application/pdf" onChange={handleOldPdfFileChange} />
+              </Button>
+            </Tooltip>
             {oldPdfFile && <Typography variant="body2" noWrap sx={{ mt: 1 }}>Selected: {oldPdfFile.name}</Typography>}
           </Grid>
           <Grid item xs={12} md={4}>
-            <Button variant="outlined" component="label" fullWidth>
-              Upload New/Revised PDF
-              <input type="file" hidden accept=".pdf,application/pdf" onChange={handleNewPdfFileChange} />
-            </Button>
+            <Tooltip title="Click to upload the new/revised PDF file">
+              <Button variant="outlined" component="label" fullWidth>
+                Upload New/Revised PDF
+                <input type="file" hidden accept=".pdf,application/pdf" onChange={handleNewPdfFileChange} />
+              </Button>
+            </Tooltip>
             {newPdfFile && <Typography variant="body2" noWrap sx={{ mt: 1 }}>Selected: {newPdfFile.name}</Typography>}
           </Grid>
           <Grid item xs={12} md={4}>
-            <Button variant="outlined" component="label" fullWidth>
-              Upload HTML File
-              <input type="file" hidden accept=".html,text/html" onChange={handleHtmlFileChange} />
-            </Button>
+            <Tooltip title="Click to upload the HTML file">
+              <Button variant="outlined" component="label" fullWidth>
+                Upload HTML File
+                <input type="file" hidden accept=".html,text/html" onChange={handleHtmlFileChange} />
+              </Button>
+            </Tooltip>
             {htmlFile && <Typography variant="body2" noWrap sx={{ mt: 1 }}>Selected: {htmlFile.name}</Typography>}
           </Grid>
         </Grid>
@@ -630,7 +637,7 @@ const Compare = () => {
           >
             {comparisonMode === 'revision' ? 'Verify Revisions' : (comparisonMode === 'checklist' ? 'Run Confirmation Check' : 'Compare')}
           </LoadingButton>
-          {loading && <Typography variant="body2" sx={{ mt: 1, textAlign: 'center' }}>Elapsed Time: {timer}s</Typography>}
+          {loading && <Typography variant="body2" sx={{ mt: 1, textAlign: 'center' }}>Elapsed Time: {Math.floor(timer / 60)}m {timer % 60}s</Typography>}
         </Box>
       </form>
 
